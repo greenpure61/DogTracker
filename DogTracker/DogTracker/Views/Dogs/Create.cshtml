@@ -1,0 +1,43 @@
+﻿@model DogTracker.Web.Models.Dog 
+
+@{
+    ViewData["Title"] = "Register New Dog";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<h4>Dog Details</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6"> @* Limit form width a bit *@
+        <form asp-action="Create">
+            @Html.AntiForgeryToken() @* Important for security *@
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div> @* Shows model-level errors *@
+
+            <div class="mb-3"> @* Bootstrap margin bottom *@
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span> @* Shows validation errors for Name *@
+            </div>
+            <div class="mb-3">
+                <label asp-for="Breed" class="control-label"></label>
+                <input asp-for="Breed" class="form-control" />
+                <span asp-validation-for="Breed" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="DateOfBirth" class="control-label"></label>
+                <input asp-for="DateOfBirth" class="form-control" />
+                <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} @* Include client-side validation *@
+}

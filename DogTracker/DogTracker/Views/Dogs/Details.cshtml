@@ -1,0 +1,613 @@
+﻿@* File: Views/Dogs/Details.cshtml *@
+@* Model is the Dog object itself *@
+@model DogTracker.Web.Models.Dog
+
+@{
+    ViewData["Title"] = $"Details for {Model.Name}";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@* --- Dog Information Section (Server-Rendered) --- *@
+<div>
+    <h4>Dog Information</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">Name</dt>
+        <dd class="col-sm-10">@Model.Name</dd>
+
+        <dt class="col-sm-2">Breed</dt>
+        <dd class="col-sm-10">@(Model.Breed ?? "N/A")</dd>
+
+        <dt class="col-sm-2">Date of Birth</dt>
+        <dd class="col-sm-10">@(Model.DateOfBirth?.ToString("yyyy-MM-dd") ?? "N/A")</dd>
+
+        @* Add other dog properties here if needed *@
+    </dl>
+</div>
+<hr />
+
+@* --- Eating Habits Section (Client-Rendered via API) --- *@
+<h4>
+    Eating Habits
+    <button type="button" class="btn btn-sm btn-success float-end" onclick="showEatingHabitModal()">
+        Add Eating Habit
+    </button>
+</h4>
+<div id="eatingHabitsLoading">Loading eating habits...</div>
+<table class="table table-sm table-bordered" id="eatingHabitsTable" style="display: none;">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Food Type</th>
+            <th>Amount</th>
+            <th>Unit</th>
+            <th>Notes</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="eatingHabitsTableBody"></tbody>
+</table>
+<div id="eatingHabitsError" class="text-danger" style="display: none;"></div>
+<hr />
+
+@* --- Toilet Habits Section (Client-Rendered via API) --- *@
+<h4>
+    Toilet Habits
+    <button type="button" class="btn btn-sm btn-success float-end" onclick="showToiletHabitModal()">
+        Add Toilet Habit
+    </button>
+</h4>
+<div id="toiletHabitsLoading">Loading toilet habits...</div>
+<table class="table table-sm table-bordered" id="toiletHabitsTable" style="display: none;">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Type</th>
+            <th>Location</th>
+            <th>Notes</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="toiletHabitsTableBody"></tbody>
+</table>
+<div id="toiletHabitsError" class="text-danger" style="display: none;"></div>
+<hr />
+
+@* --- Weight Measurements Section (Client-Rendered via API) --- *@
+<h4>
+    Weight Measurements
+    <button type="button" class="btn btn-sm btn-success float-end" onclick="showWeightModal()">
+        Add Weight
+    </button>
+</h4>
+<div id="weightMeasurementsLoading">Loading weight measurements...</div>
+<table class="table table-sm table-bordered" id="weightMeasurementsTable" style="display: none;">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Weight</th>
+            <th>Unit</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="weightMeasurementsTableBody"></tbody>
+</table>
+<div id="weightMeasurementsError" class="text-danger" style="display: none;"></div>
+<hr />
+
+
+<div>
+    <a asp-action="Index" class="btn btn-secondary">Back to Dog List</a>
+</div>
+
+@* --- MODALS --- *@
+
+@* Modal for Eating Habits *@
+<div class="modal fade" id="eatingHabitModal" tabindex="-1" aria-labelledby="eatingHabitModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eatingHabitModalLabel">Habit Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="eatingHabitForm">
+                    <input type="hidden" id="eatingHabitId" name="Id" value="0" />
+                    <input type="hidden" id="eatingHabitDogId" name="DogId" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label for="eatingHabitTimestamp" class="form-label">Timestamp</label>
+                        <input type="datetime-local" class="form-control" id="eatingHabitTimestamp" name="Timestamp" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eatingHabitFoodType" class="form-label">Food Type</label>
+                        <input type="text" class="form-control" id="eatingHabitFoodType" name="FoodType" required maxlength="100">
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <label for="eatingHabitAmount" class="form-label">Amount</label>
+                            <input type="number" step="any" class="form-control" id="eatingHabitAmount" name="Amount">
+                        </div>
+                        <div class="col">
+                            <label for="eatingHabitUnit" class="form-label">Unit</label>
+                            <input type="text" class="form-control" id="eatingHabitUnit" name="Unit" maxlength="50">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eatingHabitNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="eatingHabitNotes" name="Notes" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div id="eatingHabitModalErrorAlert" class="alert alert-danger mt-3" style="display: none;" role="alert"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveEatingHabitButton" onclick="saveEatingHabit()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal for Toilet Habits *@
+<div class="modal fade" id="toiletHabitModal" tabindex="-1" aria-labelledby="toiletHabitModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="toiletHabitModalLabel">Toilet Habit Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="toiletHabitForm">
+                    <input type="hidden" id="toiletHabitId" name="Id" value="0" />
+                    <input type="hidden" id="toiletHabitDogId" name="DogId" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label for="toiletHabitTimestamp" class="form-label">Timestamp</label>
+                        <input type="datetime-local" class="form-control" id="toiletHabitTimestamp" name="Timestamp" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="toiletHabitType" class="form-label">Type</label>
+                        @* Consider a dropdown/select list if types are fixed (Pee, Poop, Both) *@
+                        <input type="text" class="form-control" id="toiletHabitType" name="Type" required maxlength="50">
+                    </div>
+                    <div class="mb-3">
+                        <label for="toiletHabitLocation" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="toiletHabitLocation" name="Location" maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label for="toiletHabitNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="toiletHabitNotes" name="Notes" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div id="toiletHabitModalErrorAlert" class="alert alert-danger mt-3" style="display: none;" role="alert"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveToiletHabitButton" onclick="saveToiletHabit()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal for Weight Measurement *@
+<div class="modal fade" id="weightModal" tabindex="-1" aria-labelledby="weightModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="weightModalLabel">Weight Measurement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="weightForm">
+                    <input type="hidden" id="weightId" name="Id" value="0" />
+                    <input type="hidden" id="weightDogId" name="DogId" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label for="weightTimestamp" class="form-label">Timestamp</label>
+                        <input type="datetime-local" class="form-control" id="weightTimestamp" name="Timestamp" required>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <label for="weightWeight" class="form-label">Weight</label>
+                            <input type="number" step="any" class="form-control" id="weightWeight" name="Weight" required min="0.01"> @* Ensure positive weight *@
+                        </div>
+                        <div class="col">
+                            <label for="weightUnit" class="form-label">Unit</label>
+                            @* Consider dropdown (kg, lbs) *@
+                            <input type="text" class="form-control" id="weightUnit" name="Unit" required maxlength="10">
+                        </div>
+                    </div>
+                    <div id="weightModalErrorAlert" class="alert alert-danger mt-3" style="display: none;" role="alert"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveWeightButton" onclick="saveWeight()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@* --- JAVASCRIPT SECTION --- *@
+@section Scripts {
+    @* SignalR Client Library *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script> @* Check for latest 8.x version if needed *@
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // Dog ID is now directly from the Model
+            const dogId = @Model.Id;
+
+            // --- Reusable Fetch Function ---
+            function loadSection(apiUrl, tableId, tableBodyId, loadingId, errorId, renderRowFunc, noDataMessage, columns) {
+                const table = document.getElementById(tableId);
+                const tableBody = document.getElementById(tableBodyId);
+                const loadingDiv = document.getElementById(loadingId);
+                const errorDiv = document.getElementById(errorId);
+
+                if (!table || !tableBody || !loadingDiv || !errorDiv) {
+                    console.error("One or more elements not found for section controlled by API:", apiUrl);
+                    return; // Prevent errors if HTML structure is wrong
+                }
+
+                console.log(`Fetching data from: ${apiUrl}`);
+                loadingDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+                table.style.display = 'none';
+                tableBody.innerHTML = '';
+
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) { throw new Error(`Network error (Status: ${response.status})`); }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(`Data received for ${tableId}:`, data);
+                        loadingDiv.style.display = 'none';
+                        table.style.display = '';
+
+                        if (data && data.length > 0) {
+                             // Sort data by Timestamp descending before rendering
+                            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                            data.forEach(item => renderRowFunc(tableBody, item));
+                        } else {
+                            const row = tableBody.insertRow();
+                            const cell = row.insertCell();
+                            cell.colSpan = columns;
+                            cell.textContent = noDataMessage;
+                            cell.style.textAlign = 'center';
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Error fetching data for ${tableId}:`, error);
+                        loadingDiv.style.display = 'none';
+                        errorDiv.textContent = `Error loading data: ${error.message}.`;
+                        errorDiv.style.display = 'block';
+                    });
+            }
+
+            // --- Row Rendering Functions (Including Edit/Delete Buttons) ---
+
+            function renderEatingHabitRow(tbody, habit) {
+                const row = tbody.insertRow();
+                const timestamp = new Date(habit.timestamp);
+                row.insertCell().textContent = timestamp.toLocaleString(); // Format as needed
+                row.insertCell().textContent = habit.foodType;
+                row.insertCell().textContent = habit.amount !== null ? habit.amount : '';
+                row.insertCell().textContent = habit.unit !== null ? habit.unit : '';
+                row.insertCell().textContent = habit.notes !== null ? habit.notes : '';
+                const actionsCell = row.insertCell();
+                actionsCell.classList.add('text-nowrap');
+                actionsCell.innerHTML = `
+                    <button type="button" class="btn btn-sm btn-warning me-1" onclick='showEatingHabitModal(${JSON.stringify(habit)})'>Edit</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteEatingHabit(${habit.id})">Delete</button>
+                `;
+            }
+
+            function renderToiletHabitRow(tbody, habit) {
+                const row = tbody.insertRow();
+                const timestamp = new Date(habit.timestamp);
+                row.insertCell().textContent = timestamp.toLocaleString();
+                row.insertCell().textContent = habit.type;
+                row.insertCell().textContent = habit.location !== null ? habit.location : '';
+                row.insertCell().textContent = habit.notes !== null ? habit.notes : '';
+                const actionsCell = row.insertCell();
+                actionsCell.classList.add('text-nowrap');
+                actionsCell.innerHTML = `
+                    <button type="button" class="btn btn-sm btn-warning me-1" onclick='showToiletHabitModal(${JSON.stringify(habit)})'>Edit</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteToiletHabit(${habit.id})">Delete</button>
+                `;
+            }
+
+             function renderWeightMeasurementRow(tbody, measurement) {
+                const row = tbody.insertRow();
+                const timestamp = new Date(measurement.timestamp);
+                row.insertCell().textContent = timestamp.toLocaleString();
+                row.insertCell().textContent = measurement.weight !== null ? measurement.weight.toFixed(2) : '';
+                row.insertCell().textContent = measurement.unit;
+                const actionsCell = row.insertCell();
+                actionsCell.classList.add('text-nowrap');
+                 actionsCell.innerHTML = `
+                    <button type="button" class="btn btn-sm btn-warning me-1" onclick='showWeightModal(${JSON.stringify(measurement)})'>Edit</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteWeight(${measurement.id})">Delete</button>
+                `;
+            }
+
+             // --- Helper for handling fetch responses and parsing errors ---
+            function handleFetchResponse(response) {
+                if (!response.ok) {
+                    return response.json().catch(() => {
+                        throw new Error(`Request failed (Status: ${response.status})`);
+                    }).then(errorData => {
+                        let errMsg = `Request failed (Status: ${response.status})`;
+                        if (errorData) {
+                            if (errorData.errors) { errMsg = Object.values(errorData.errors).flat().join(' '); }
+                            else if (errorData.title) { errMsg = errorData.title; }
+                            else if (typeof errorData === 'string') { errMsg = errorData; }
+                        }
+                        throw new Error(errMsg);
+                    });
+                }
+                return response.status === 204 ? null : response.json();
+            }
+
+            // --- Eating Habit Modal and CRUD Logic ---
+            const eatingHabitModalElement = document.getElementById('eatingHabitModal');
+            const eatingHabitModal = new bootstrap.Modal(eatingHabitModalElement);
+            const eatingHabitForm = document.getElementById('eatingHabitForm');
+            const eatingHabitModalErrorAlert = document.getElementById('eatingHabitModalErrorAlert');
+
+            window.showEatingHabitModal = function(habit = null) { /* ... function definition as before ... */
+                eatingHabitForm.reset();
+                eatingHabitModalErrorAlert.style.display = 'none';
+                document.getElementById('eatingHabitDogId').value = dogId;
+
+                if (habit) { // Edit Mode
+                    document.getElementById('eatingHabitModalLabel').textContent = 'Edit Eating Habit';
+                    document.getElementById('eatingHabitId').value = habit.id;
+                    const timestamp = new Date(habit.timestamp);
+                    timestamp.setMinutes(timestamp.getMinutes() - timestamp.getTimezoneOffset());
+                    document.getElementById('eatingHabitTimestamp').value = timestamp.toISOString().slice(0, 16);
+                    document.getElementById('eatingHabitFoodType').value = habit.foodType;
+                    document.getElementById('eatingHabitAmount').value = habit.amount;
+                    document.getElementById('eatingHabitUnit').value = habit.unit;
+                    document.getElementById('eatingHabitNotes').value = habit.notes;
+                } else { // Add Mode
+                    document.getElementById('eatingHabitModalLabel').textContent = 'Add Eating Habit';
+                    document.getElementById('eatingHabitId').value = 0;
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                    document.getElementById('eatingHabitTimestamp').value = now.toISOString().slice(0, 16);
+                }
+                eatingHabitModal.show();
+             }
+            window.saveEatingHabit = function() { /* ... function definition as before ... */
+                const habitId = parseInt(document.getElementById('eatingHabitId').value, 10);
+                const isEdit = habitId > 0;
+                const apiUrl = isEdit ? `/api/EatingHabitsApi/${habitId}` : '/api/EatingHabitsApi';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const localTimestamp = document.getElementById('eatingHabitTimestamp').value;
+                const timestampToSend = localTimestamp ? new Date(localTimestamp).toISOString() : new Date().toISOString();
+
+                const habitData = {
+                    id: habitId, dogId: parseInt(document.getElementById('eatingHabitDogId').value, 10),
+                    timestamp: timestampToSend, foodType: document.getElementById('eatingHabitFoodType').value,
+                    amount: parseFloat(document.getElementById('eatingHabitAmount').value) || null,
+                    unit: document.getElementById('eatingHabitUnit').value || null,
+                    notes: document.getElementById('eatingHabitNotes').value || null
+                };
+
+                console.log(`Saving eating habit (ID: ${habitId}, Method: ${method})`, habitData);
+                eatingHabitModalErrorAlert.style.display = 'none';
+
+                fetch(apiUrl, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(habitData) })
+                .then(response => handleFetchResponse(response))
+                .then(data => { console.log('Save successful', data); eatingHabitModal.hide(); loadEatingHabits(); })
+                .catch(error => { console.error('Error saving eating habit:', error); eatingHabitModalErrorAlert.textContent = `Save failed: ${error.message}`; eatingHabitModalErrorAlert.style.display = 'block'; });
+             }
+            window.deleteEatingHabit = function(id) { /* ... function definition as before ... */
+                if (!confirm(`Are you sure you want to delete eating habit ID ${id}?`)) return;
+                 console.log(`Deleting eating habit ID: ${id}`);
+                 fetch(`/api/EatingHabitsApi/${id}`, { method: 'DELETE' })
+                    .then(response => { if (!response.ok) { throw new Error(`Network error (Status: ${response.status})`); } })
+                    .then(() => { console.log('Delete successful'); loadEatingHabits(); })
+                    .catch(error => { console.error(`Error deleting eating habit ID ${id}:`, error); alert(`Error deleting habit: ${error.message}`); });
+             }
+
+            // --- Toilet Habit Modal and CRUD Logic ---
+            const toiletHabitModalElement = document.getElementById('toiletHabitModal');
+            const toiletHabitModal = new bootstrap.Modal(toiletHabitModalElement);
+            const toiletHabitForm = document.getElementById('toiletHabitForm');
+            const toiletHabitModalErrorAlert = document.getElementById('toiletHabitModalErrorAlert');
+
+            window.showToiletHabitModal = function(habit = null) { /* ... function definition as before ... */
+                 toiletHabitForm.reset();
+                toiletHabitModalErrorAlert.style.display = 'none';
+                document.getElementById('toiletHabitDogId').value = dogId;
+
+                if (habit) { // Edit Mode
+                    document.getElementById('toiletHabitModalLabel').textContent = 'Edit Toilet Habit';
+                    document.getElementById('toiletHabitId').value = habit.id;
+                    const timestamp = new Date(habit.timestamp);
+                    timestamp.setMinutes(timestamp.getMinutes() - timestamp.getTimezoneOffset());
+                    document.getElementById('toiletHabitTimestamp').value = timestamp.toISOString().slice(0, 16);
+                    document.getElementById('toiletHabitType').value = habit.type;
+                    document.getElementById('toiletHabitLocation').value = habit.location;
+                    document.getElementById('toiletHabitNotes').value = habit.notes;
+                } else { // Add Mode
+                    document.getElementById('toiletHabitModalLabel').textContent = 'Add Toilet Habit';
+                    document.getElementById('toiletHabitId').value = 0;
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                    document.getElementById('toiletHabitTimestamp').value = now.toISOString().slice(0, 16);
+                }
+                toiletHabitModal.show();
+            }
+            window.saveToiletHabit = function() { /* ... function definition as before ... */
+                 const habitId = parseInt(document.getElementById('toiletHabitId').value, 10);
+                const isEdit = habitId > 0;
+                const apiUrl = isEdit ? `/api/ToiletHabitsApi/${habitId}` : '/api/ToiletHabitsApi';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const localTimestamp = document.getElementById('toiletHabitTimestamp').value;
+                const timestampToSend = localTimestamp ? new Date(localTimestamp).toISOString() : new Date().toISOString();
+
+                const habitData = {
+                    id: habitId, dogId: parseInt(document.getElementById('toiletHabitDogId').value, 10),
+                    timestamp: timestampToSend, type: document.getElementById('toiletHabitType').value,
+                    location: document.getElementById('toiletHabitLocation').value || null,
+                    notes: document.getElementById('toiletHabitNotes').value || null
+                };
+
+                console.log(`Saving toilet habit (ID: ${habitId}, Method: ${method})`, habitData);
+                toiletHabitModalErrorAlert.style.display = 'none';
+
+                fetch(apiUrl, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(habitData) })
+                .then(response => handleFetchResponse(response))
+                .then(data => { console.log('Save successful', data); toiletHabitModal.hide(); loadToiletHabits(); })
+                .catch(error => { console.error('Error saving toilet habit:', error); toiletHabitModalErrorAlert.textContent = `Save failed: ${error.message}`; toiletHabitModalErrorAlert.style.display = 'block'; });
+            }
+             window.deleteToiletHabit = function(id) { /* ... function definition as before ... */
+                if (!confirm(`Are you sure you want to delete toilet habit ID ${id}?`)) return;
+                 console.log(`Deleting toilet habit ID: ${id}`);
+                 fetch(`/api/ToiletHabitsApi/${id}`, { method: 'DELETE' })
+                    .then(response => { if (!response.ok) { throw new Error(`Network error (Status: ${response.status})`); } })
+                    .then(() => { console.log('Delete successful'); loadToiletHabits(); })
+                    .catch(error => { console.error(`Error deleting toilet habit ID ${id}:`, error); alert(`Error deleting habit: ${error.message}`); });
+             }
+
+             // --- Weight Measurement Modal and CRUD Logic ---
+            const weightModalElement = document.getElementById('weightModal');
+            const weightModal = new bootstrap.Modal(weightModalElement);
+            const weightForm = document.getElementById('weightForm');
+            const weightModalErrorAlert = document.getElementById('weightModalErrorAlert');
+
+             window.showWeightModal = function(measurement = null) { /* ... function definition as before ... */
+                 weightForm.reset();
+                weightModalErrorAlert.style.display = 'none';
+                document.getElementById('weightDogId').value = dogId;
+
+                if (measurement) { // Edit Mode
+                    document.getElementById('weightModalLabel').textContent = 'Edit Weight Measurement';
+                    document.getElementById('weightId').value = measurement.id;
+                    const timestamp = new Date(measurement.timestamp);
+                    timestamp.setMinutes(timestamp.getMinutes() - timestamp.getTimezoneOffset());
+                    document.getElementById('weightTimestamp').value = timestamp.toISOString().slice(0, 16);
+                    document.getElementById('weightWeight').value = measurement.weight;
+                    document.getElementById('weightUnit').value = measurement.unit;
+                } else { // Add Mode
+                    document.getElementById('weightModalLabel').textContent = 'Add Weight Measurement';
+                    document.getElementById('weightId').value = 0;
+                     const now = new Date();
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                    document.getElementById('weightTimestamp').value = now.toISOString().slice(0, 16);
+                }
+                weightModal.show();
+             }
+            window.saveWeight = function() { /* ... function definition as before ... */
+                 const measurementId = parseInt(document.getElementById('weightId').value, 10);
+                const isEdit = measurementId > 0;
+                const apiUrl = isEdit ? `/api/WeightMeasurementsApi/${measurementId}` : '/api/WeightMeasurementsApi';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const localTimestamp = document.getElementById('weightTimestamp').value;
+                const timestampToSend = localTimestamp ? new Date(localTimestamp).toISOString() : new Date().toISOString();
+
+                const measurementData = {
+                    id: measurementId, dogId: parseInt(document.getElementById('weightDogId').value, 10),
+                    timestamp: timestampToSend, weight: parseFloat(document.getElementById('weightWeight').value) || 0,
+                    unit: document.getElementById('weightUnit').value
+                };
+
+                if (measurementData.weight <= 0 || !measurementData.unit) {
+                     weightModalErrorAlert.textContent = `Save failed: Weight must be positive and Unit is required.`;
+                     weightModalErrorAlert.style.display = 'block';
+                     return;
+                }
+
+                console.log(`Saving weight measurement (ID: ${measurementId}, Method: ${method})`, measurementData);
+                weightModalErrorAlert.style.display = 'none';
+
+                fetch(apiUrl, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(measurementData) })
+                 .then(response => handleFetchResponse(response))
+                .then(data => { console.log('Save successful', data); weightModal.hide(); loadWeightMeasurements(); })
+                .catch(error => { console.error('Error saving weight measurement:', error); weightModalErrorAlert.textContent = `Save failed: ${error.message}`; weightModalErrorAlert.style.display = 'block'; });
+            }
+            window.deleteWeight = function(id) { /* ... function definition as before ... */
+                if (!confirm(`Are you sure you want to delete weight measurement ID ${id}?`)) return;
+                 console.log(`Deleting weight measurement ID: ${id}`);
+                 fetch(`/api/WeightMeasurementsApi/${id}`, { method: 'DELETE' })
+                    .then(response => { if (!response.ok) { throw new Error(`Network error (Status: ${response.status})`); } })
+                    .then(() => { console.log('Delete successful'); loadWeightMeasurements(); })
+                    .catch(error => { console.error(`Error deleting weight measurement ID ${id}:`, error); alert(`Error deleting weight measurement: ${error.message}`); });
+             }
+
+            // --- Dedicated Load Functions ---
+            function loadEatingHabits() {
+                 loadSection(
+                    `/api/EatingHabitsApi?dogId=${dogId}`, 'eatingHabitsTable', 'eatingHabitsTableBody', 'eatingHabitsLoading', 'eatingHabitsError',
+                    renderEatingHabitRow, 'No eating habits recorded.', 6
+                );
+            }
+            function loadToiletHabits() {
+                 loadSection(
+                    `/api/ToiletHabitsApi?dogId=${dogId}`, 'toiletHabitsTable', 'toiletHabitsTableBody', 'toiletHabitsLoading', 'toiletHabitsError',
+                    renderToiletHabitRow, 'No toilet habits recorded.', 5 // Column count 5
+                );
+            }
+            function loadWeightMeasurements() {
+                 loadSection(
+                    `/api/WeightMeasurementsApi?dogId=${dogId}`, 'weightMeasurementsTable', 'weightMeasurementsTableBody', 'weightMeasurementsLoading', 'weightMeasurementsError',
+                    renderWeightMeasurementRow, 'No weight measurements recorded.', 4 // Column count 4
+                );
+            }
+
+            // --- SignalR Connection Setup ---
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/dogUpdateHub")
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            connection.on("ReceiveUpdateNotification", (updatedDogId, dataType) => {
+                console.log(`SignalR: Received update for dog ${updatedDogId}, type ${dataType}`);
+                if (updatedDogId === dogId) {
+                    console.log(`SignalR: Refreshing section for data type: ${dataType}`);
+                    switch (dataType) {
+                        case "EatingHabit": loadEatingHabits(); break;
+                        case "ToiletHabit": loadToiletHabits(); break;
+                        case "WeightMeasurement": loadWeightMeasurements(); break;
+                        default: console.warn(`SignalR: Unknown data type received: ${dataType}`);
+                    }
+                } else { console.log(`SignalR: Ignoring update for different dog (${updatedDogId})`); }
+            });
+
+            async function startSignalRConnection() {
+                try {
+                    await connection.start();
+                    console.log("SignalR Connected.");
+                    await connection.invoke("JoinDogGroup", dogId);
+                    console.log(`SignalR: Joined group for dog ${dogId}.`);
+                } catch (err) {
+                    console.error("SignalR Connection Failed: ", err);
+                    setTimeout(startSignalRConnection, 5000); // Retry after 5 seconds
+                }
+            }
+
+            connection.onclose(async (error) => {
+                console.error("SignalR Connection closed.", error);
+                await startSignalRConnection(); // Attempt to reconnect
+            });
+
+            // --- Initial Load and SignalR Start ---
+            loadEatingHabits();
+            loadToiletHabits();
+            loadWeightMeasurements();
+            startSignalRConnection(); // Start SignalR after initial setup
+
+        }); // End DOMContentLoaded
+    </script>
+}

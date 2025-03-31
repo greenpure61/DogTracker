@@ -1,0 +1,25 @@
+﻿@using DogTracker.Models  // <-- This line is OK, but likely redundant /unnecessary
+@model ErrorViewModel // <-- CORRECT: Specifies the model type for THIS view
+@{
+    ViewData["Title"] = "Error";
+}
+
+<h1 class="text-danger">Error.</h1>
+<h2 class="text-danger">An error occurred while processing your request.</h2>
+
+@if (Model.ShowRequestId) // Correctly uses the Model property
+{
+        <p>
+            <strong>Request ID:</strong> <code>@Model.RequestId</code>
+        </p>
+}
+
+@* The rest of the standard development mode explanation is fine *@
+<h3>Development Mode</h3>
+<p>
+    Swapping to <strong>Development</strong> environment will display more detailed information...
+</p>
+<p>
+    <strong>The Development environment should not be enabled...</strong>
+    ...
+</p>
